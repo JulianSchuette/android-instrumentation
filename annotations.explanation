@@ -1,0 +1,25 @@
+function: v3: java.lang.String, v4: int
+    Eine Funktion wird mit den angegebenen Parametern, die potentiell markiert sein können aufgerufen
+
+return: v4: java.lang.String
+    Das potentiell markierte Register wird zurückgegeben
+
+marked_if_parameter_marked: v10: java.lang.String
+    Kommt nur in Zeile 0 vor
+    Das Register ist potentiell markiert, da es einer der Aufrufparameter ist, und dieser evtl. markiert ist.
+
+marking: v6: int
+    Markiere Register oder statische Klassenvariable
+
+marking_instancevar: v1: com.example.android.skeletonapp.SkeletonActivity.MY_INSTANCE_VAR: int
+    Markiere Klassenvariable der Instanz v1
+
+propagate: com.example.android.skeletonapp.SkeletonActivity.MY_STATIC_VAR: v2: java.lang.String
+    Der Markier-Status wird von der ersten Variable (eine statische Klassenvariable) auf das Register übertragen.
+    Heißt z.B.: Wenn in der Zeile die statische Variable markiert war, ist nun das Register auch markiert.
+
+propagate_instancevar v1: com.example.android.skeletonapp.SkeletonActivity.MY_INSTANCE_VAR: v2: int
+    Propagiere den Markier-Status der Klassenvariable (MY_INSTANCE) der gegebenen Instanz v1 in das Register v2
+
+unmarking: v1: int
+    Unmarkiere v1

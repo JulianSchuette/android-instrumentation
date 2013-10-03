@@ -1,4 +1,4 @@
 android-instrumentation
 =======================
 
-Lets you inject custom functions into Android bytecode
+Inspects and modifies every method parameter in an Android app at runtime.
