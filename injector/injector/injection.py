@@ -268,19 +268,20 @@ class Injector(object):
                 if m.registers-len(m.paras)+MORE_REGS>15 and m.registers-len(m.paras)-1 <= 15:
                     if ''.join([c.name,m.name]) not in methods_to_fix:
                         for i, insn in enumerate(m.insns):
-                            if insn.opcode_name in ['move-object','move-object/from16','move-object/16','int-to-float','int-to-long','array-length','invoke-interface','invoke-direct','invoke-static','invoke-super', 'invoke-virtual', 'iget-object','iget-boolean','iget-short','iget-byte','iget-char','iget-wide', 'iput-boolean', 'iput-short', 'iput-byte', 'iput-char', 'iput-wide', 'iput-object', 'iget', 'iput', 'iget-wide', 'iput-wide', 'instance-of', 'if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le', 'return-object', 'return-wide', 'return']:
-                                print insn
-                                print m.descriptor
-                                methods_to_fix[''.join([c.name,m.name,m.descriptor])] = m
-                                all_ps = re.findall(r'[\s|\{]p(\d)', str(insn))
-                                ins_buf = insn.buf
-                                for p in all_ps:
-                                    pos = m.registers-self.count_params(m) + int(p[0])                                  
-                                    print '        this statement uses parameter %s which should be rewritten to v%s'%(p,pos)
-                                    ins_buf = ins_buf.replace('p%s'%p,'v%d'%pos)
-                                    new_ins = InsnNode(ins_buf)
-                                    print '          the new ins is now %s '%new_ins
-                                    m.insns[i] = new_ins
+                            if insn.opcode_name in OPCODE_MAP:
+                                if len([value for key, value in hooks.items() if key in self.str_to_java(insn.buf)])>0:
+                                    print insn
+                                    print m.descriptor
+                                    methods_to_fix[''.join([c.name,m.name,m.descriptor])] = m
+                                    all_ps = re.findall(r'[\s|\{]p(\d)', str(insn))
+                                    ins_buf = insn.buf
+                                    for p in all_ps:
+                                        pos = m.registers-self.count_params(m) + int(p[0])                                  
+                                        print '        this statement uses parameter %s which should be rewritten to v%s'%(p,pos)
+                                        ins_buf = ins_buf.replace('p%s'%p,'v%d'%pos)
+                                        new_ins = InsnNode(ins_buf)
+                                        print '          the new ins is now %s '%new_ins
+                                        m.insns[i] = new_ins
                                     
         ################ MOVE PARAMETERS TO THEIR ORIGINAL POSITIONS ###############################
         for methodname in methods_to_fix:
@@ -325,7 +326,17 @@ class Injector(object):
                 print "new_i starts at %d (%d parameters and %d added hooks. This is 0:%s)"%(new_i,len(m.paras),ADDED_LINES, (i-ADDED_LINES))
                 len_m = len(m.insns)
                 
-                print "Checking method: %s"%qualified_name
+                # Check if method contains call to instrument
+                skip_method = True
+                for ix in m.insns:
+                    if ix.opcode_name in OPCODE_MAP:
+                        if len([value for key, value in hooks.items() if key in self.str_to_java(ix.buf)])>0:
+                            skip_method = False
+                            break                            
+                if skip_method:
+                    break
+                            
+                
                 #Add MORE_REGS more registers for additional info
                 m.set_registers(m.registers+MORE_REGS)
                 new_regs = []
