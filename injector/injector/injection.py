@@ -309,11 +309,9 @@ class Injector(object):
                     i+=1
                 m.insert_insn(instr, 0, 0)          
         #########################################################################
-
         
         for c in st.classes:                # iterate over all classes ...
             for m in c.methods:             # ... and all methods.
-                qualified_name = self.to_java_notation(c,m)
                 i = 0 
                 ADDED_LINES = 0
                 if ''.join([c.name,m.name,m.descriptor]) in methods_to_fix:
@@ -323,19 +321,20 @@ class Injector(object):
                         i -= 1
                         ADDED_LINES -= 1
                 new_i = i #new_i: saves position of new code and jumps over newly added code
-                print "new_i starts at %d (%d parameters and %d added hooks. This is 0:%s)"%(new_i,len(m.paras),ADDED_LINES, (i-ADDED_LINES))
-                len_m = len(m.insns)
+                #print "new_i starts at %d (%d parameters and %d added hooks. This is 0:%s)"%(new_i,len(m.paras),ADDED_LINES, (i-ADDED_LINES))
                 
                 # Check if method contains call to instrument
                 skip_method = True
                 for ix in m.insns:
-                    if ix.opcode_name in OPCODE_MAP:
+                    if ix.opcode_name.startswith('invoke'):
                         if len([value for key, value in hooks.items() if key in self.str_to_java(ix.buf)])>0:
                             skip_method = False
-                            break                            
+                            break
                 if skip_method:
                     break
                             
+                print "relevant: %s"%ix.opcode_name                      
+
                 
                 #Add MORE_REGS more registers for additional info
                 m.set_registers(m.registers+MORE_REGS)
@@ -350,45 +349,30 @@ class Injector(object):
                         new_i += 1
                         insn = m.insns[new_i]
                     if insn.buf.startswith('invoke-'):
-                        if len([value for key, value in hooks.items() if key in self.str_to_java(insn.buf)])>0:
-                            print "CALL: %s"%str(insn)
-                            
+                        applicable_hooks = [value for key, value in hooks.items() if key in self.str_to_java(insn.buf)]
+                        if len(applicable_hooks)>0:                            
                             # Get parameters
                             params = self._parse_paras(insn.buf)
-                            print "Params: %s"%params
                             regs = insn.obj.registers
-                            print "Regs: %s"%regs
                             if 'range' in insn.opcode_name:
                                 print "Invoke-Range not yet implemented!: %s, %s"%regs,insn.buf
-                                
                             
+                            #create an array
+                            instr = InsnNode("const/4 %s, %d"%(new_regs[1], len(regs)))
+                            m.insert_insn(instr, new_i, 0)
+                            new_i += 1
+                            instr = InsnNode("new-array %s, %s, [Lde/aisec/utils/Register;"%(new_regs[0],new_regs[1]))
+                            m.insert_insn(instr, new_i, 0)
+                            new_i += 1
                             for j,r in enumerate(regs):
-                                instr = InsnNode("move-object/16 %s, %s "%(new_regs[j],r))
+                                instr = InsnNode("move-object/16 %s, %s "%(new_regs[j+2],r))
                                 m.insert_insn(instr, new_i, 0)
                                 new_i += 1
-                        
-#                     print "Checking instr %s\n  %s"%(insn, hooks[qualified_name][i-ADDED_LINES])
-                    
-                    #@todo This is a leftover. I guess it can be removed....
-#                         if insn.opcode_name in ['move-object']:
-#                             new_inst = InsnNode(insn.buf.replace('move-object', 'move-object/16'))
-#                             m.insns[new_i] = new_inst
-                    
-#                         if i-ADDED_LINES in hooks[qualified_name]:
-#                             print "(line: %d, new_pc: %d) In method %s I would instrument line %d and variables %s. Stmt: %s"%(i-ADDED_LINES,new_i,qualified_name,i-ADDED_LINES,hooks[qualified_name][i-ADDED_LINES], m.insns[new_i])
-                        
-#                     for key in hooks[qualified_name][i-ADDED_LINES]:
-#                             instr = InsnNode("const-string %s, \"%s\" "%(reg1, m.descriptor + split[0]))
-#                             #mark below line (move-result otherwise problem)
-#                             m.insert_insn(instr, new_i + 1, 0)
-#                             new_i += 1
-#                             instr = InsnNode("move-object/16 %s, %s "%(reg0,'p0'))
-#                             m.insert_insn(instr, new_i + 1, 0)
-#                             new_i += 1
-#                             instr = InsnNode("invoke-static/range {%s .. %s}, Lmonitor/com/Tracker;->mark_register(Ljava/lang/Object;Ljava/lang/String;)V"%(reg0,reg1))
-#                             m.insert_insn(instr, new_i + 1, 0)
-#                             new_i += 1
-                                                          
+                            # Call hook
+                            instr = InsnNode("invoke-static %s %s"%(new_regs[0],applicable_hooks[0])) #TODO call more than one hook, if any
+                            m.insert_insn(instr, new_i, 0)
+                            new_i += 1
+                                                                                  
                     i += 1  
                     new_i += 1  
   
