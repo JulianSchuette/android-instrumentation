@@ -10,7 +10,6 @@ calls, etc.
 @author: Julian Schuette (julian.schuette@aisec.fraunhofer.de)
 '''
 import sys
-import code
 import os
 import shutil
 import time
@@ -41,8 +40,8 @@ instr_data = {}
 
 
 def load_hooks(filename):
-    file = open(filename)
-    lines = file.readlines()
+    f = open(filename)
+    lines = f.readlines()
     for line in lines:
         data = line.split('=>')
         if len(data)==2:
