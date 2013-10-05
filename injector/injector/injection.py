@@ -361,7 +361,7 @@ class Injector(object):
                             instr = InsnNode("const/4 %s, %d"%(new_regs[1], len(regs)))
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
-                            instr = InsnNode("new-array %s, %s, [Lde/aisec/utils/Register;"%(new_regs[0],new_regs[1])) #TODO type inference required
+                            instr = InsnNode("new-array %s, %s, [Ljava/lang/Object;"%(new_regs[0],new_regs[1])) #TODO type inference required
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
                             for j,r in enumerate(regs):
