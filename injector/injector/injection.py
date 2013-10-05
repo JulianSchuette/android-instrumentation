@@ -361,7 +361,7 @@ class Injector(object):
                             instr = InsnNode("const/4 %s, %d"%(new_regs[1], len(regs)))
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
-                            instr = InsnNode("new-array %s, %s, [Lde/aisec/utils/Register;"%(new_regs[0],new_regs[1]))
+                            instr = InsnNode("new-array %s, %s, [Lde/aisec/utils/Register;"%(new_regs[0],new_regs[1])) #TODO type inference required
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
                             for j,r in enumerate(regs):
@@ -370,6 +370,9 @@ class Injector(object):
                                 new_i += 1
                             # Call hook
                             instr = InsnNode("invoke-static %s %s"%(new_regs[0],applicable_hooks[0])) #TODO call more than one hook, if any
+                            m.insert_insn(instr, new_i, 0)
+                            new_i += 1
+                            instr = InsnNode("move-result %s"%(new_regs[0]))
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
                                                                                   
