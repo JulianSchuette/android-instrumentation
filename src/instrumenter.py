@@ -66,8 +66,7 @@ def instrument(filename,hooks):
     db_path = os.path.join(working_dir, "androidlib")
     mo = injector.injection.Injector(db_path, config=api_config)
     
-    new_apk = os.path.join(outdir, root_name + "_new.apk")
-    #outdir = os.path.join(outdir, "apimonitor_out")
+    new_apk = os.path.join(outdir, os.path.split(root_name)[1] + "_new.apk")
 
     if os.path.exists(outdir):
         shutil.rmtree(outdir)
@@ -155,6 +154,6 @@ if __name__ == '__main__':
     for dirname, dirnames, filenames in os.walk(app_dir):
         for filename in filenames:
             if '.apk' in filename:
-                print "Instrumenting %s"%filename
-                do_sth(app_dir+filename)
+                print "Instrumenting %s"%os.path.join(dirname, filename)
+                do_sth(os.path.join(dirname, filename))
     

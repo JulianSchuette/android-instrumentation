@@ -365,16 +365,21 @@ class Injector(object):
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
                             for j,r in enumerate(regs):
-                                instr = InsnNode("move-object/16 %s, %s "%(new_regs[j+2],r))
+                                instr = InsnNode("aput-object %s, %s, %s "%(new_regs[j+2],new_regs[0],r))
                                 m.insert_insn(instr, new_i, 0)
                                 new_i += 1
                             # Call hook
                             instr = InsnNode("invoke-static %s %s"%(new_regs[0],applicable_hooks[0])) #TODO call more than one hook, if any
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
+                            # Copy back results
                             instr = InsnNode("move-result %s"%(new_regs[0]))
                             m.insert_insn(instr, new_i, 0)
                             new_i += 1
+                            for j,r in enumerate(regs):
+                                instr = InsnNode("aget-object %s, %s, %s "%(new_regs[j+2],new_regs[0],r))
+                                m.insert_insn(instr, new_i, 0)
+                                new_i += 1
                                                                                   
                     i += 1  
                     new_i += 1  
