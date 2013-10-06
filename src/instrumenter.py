@@ -157,7 +157,7 @@ def main(args=argparse.Namespace()):
     load_hooks(args.hooks)
     
     if args.f is None:
-        for dirname, _, filenames in os.walk(app_dir):
+        for dirname, dirnames, filenames in os.walk(app_dir):
             for filename in filenames:
                 if '.apk' in filename:
                     _, ext = os.path.splitext(filename)

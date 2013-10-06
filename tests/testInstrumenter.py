@@ -7,7 +7,7 @@ class InstrumentationTestcase(unittest.TestCase):
 
     def testLoadHooks(self):
         if len(instrumenter.instr_data)>=0:
-            instrumenter.instr_data=[]
+            instrumenter.instr_data={}
         instrumenter.load_hooks(instrumenter.hook_file)
         assert len(instrumenter.instr_data)>0
 
