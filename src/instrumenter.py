@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# coding: utf8
 '''
 Created on 27.02.2013
 
@@ -12,10 +14,7 @@ calls, etc.
 import sys
 import os
 import shutil
-import time
 import argparse
-import collections
-import copy
 from androguard.core.bytecodes import apk
 from injector import smali
 import injector.injection
@@ -56,6 +55,7 @@ def instrument(filename,hooks):
     @param filename: str indicating the full path to the APK file to instrument
     @param hooks: annotation object from dftest, indicating code locations to instrument
     '''
+    print "Instrumenting %s"%filename
     root_name, ext = os.path.splitext(filename)
 
     # APK gives access to the resources of an apk file
@@ -128,31 +128,54 @@ def instrument(filename,hooks):
     print "DONE. Have fun with %s" % new_apk
 
 
+def parse_cmd_line():
+
+    parser = argparse.ArgumentParser(description=u'Instrumenting Android Apps.\n\
+                                     \n\
+                                    This tool injects hook methods into Android APK.\n\
+                                    (C) Julian Schütte, Fraunhofer AISEC, 2013')
+    parser.add_argument('-f', metavar='apk_file', type=str,
+                       help='APK file(s) to instrument. If omitted, instrument all apps in current directory')
+    parser.add_argument('--hooks', dest='hooks', metavar='file', action='store', default='hooks.conf',
+                       help='hooks file (default: hook.conf)')
     
-def do_sth(apk_name):
+    args = parser.parse_args()
+    print args
+    return args
+
+    
+def main(args=argparse.Namespace()):
     '''
     Entry point
     '''
-    root_name, ext = os.path.splitext(apk_name)
-    load_hooks(hook_file)
+    app_dir='./'
     
-    if ext != ".apk":
-        print "error: not an APK file"
-        sys.exit(2)
-       
-    # instrument and re-package the app
-    with watch:
-        instrument(apk_name, instr_data)
+    if not hasattr(args, 'hooks'):
+        setattr(args, 'hooks', 'hooks.conf')
+    if not hasattr(args, 'f'):
+        setattr(args, 'f', None)
+    load_hooks(args.hooks)
+    
+    if args.f is None:
+        for dirname, _, filenames in os.walk(app_dir):
+            for filename in filenames:
+                if '.apk' in filename:
+                    _, ext = os.path.splitext(filename)
+                    
+                    if ext != ".apk":
+                        print "error: not an APK file"
+                        sys.exit(2)
+                       
+                    # instrument and re-package the app
+                    with watch:
+                        instrument(os.path.join(dirname,filename), instr_data)
+    else:
+        instrument(args.f, instr_data)
 
     
 if __name__ == '__main__':
     '''
     Where it begins...
     '''
-    app_dir='./'
-    for dirname, dirnames, filenames in os.walk(app_dir):
-        for filename in filenames:
-            if '.apk' in filename:
-                print "Instrumenting %s"%os.path.join(dirname, filename)
-                do_sth(os.path.join(dirname, filename))
+    main(parse_cmd_line())
     
