@@ -9,14 +9,13 @@ This module parses dex bytecode and inserts custom code at configurable points.
 Example usages are to insert debug statements into APKs, modify parameters of function 
 calls, etc.
 
-@author: Julian Schuette (julian.schuette@aisec.fraunhofer.de)
+@author: Julian Schuette (julian.schuette@aisec.fraunhofer.de), 2013
 '''
 import sys
 import os
 import shutil
 import argparse
 from androguard.core.bytecodes import apk
-from injector import smali
 import injector.injection
 from subprocess import call
 from stopwatch import Stopwatch
@@ -56,7 +55,7 @@ def instrument(filename,hooks):
     @param hooks: annotation object from dftest, indicating code locations to instrument
     '''
     print "Instrumenting %s"%filename
-    root_name, ext = os.path.splitext(filename)
+    root_name, _ = os.path.splitext(filename)
 
     # APK gives access to the resources of an apk file
     a = apk.APK(filename)

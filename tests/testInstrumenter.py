@@ -1,10 +1,8 @@
 import os
 import unittest
 import instrumenter
-import argparse
 
 class InstrumentationTestcase(unittest.TestCase):
-
     def testLoadHooks(self):
         if len(instrumenter.instr_data)>=0:
             instrumenter.instr_data={}
