@@ -15,6 +15,7 @@ import re
 from smali import ClassNode, MethodNode, InsnNode, \
                   TypeNode
 from api import AndroidAPI, AndroidClass, AndroidMethod
+import injector
 
 PKG_PREFIX = "monitor"
 
@@ -60,12 +61,6 @@ class Injector(object):
 
     def to_java_notation(self, clazz, meth):
         qualified_name = clazz.name.replace('/','.').replace(';','.') + meth.descriptor.replace(' (', '(')
-        if qualified_name[0]=='L':
-            qualified_name = qualified_name[1:]
-        return qualified_name
-
-    def str_to_java(self, string):
-        qualified_name = string.replace('/','.').replace(';->','.') + string.replace(' (', '(')
         if qualified_name[0]=='L':
             qualified_name = qualified_name[1:]
         return qualified_name
@@ -136,7 +131,9 @@ class Injector(object):
     
     def inject(self, smali_tree, level, hooks):
         # get a copy of smali tree
+        assert isinstance(hooks,dict)
         st = copy.deepcopy(smali_tree)
+        print "Injecting hooks at %s"%hooks
         
         # load api database
         print "Loading and processing API database..."
@@ -269,7 +266,7 @@ class Injector(object):
                     if ''.join([c.name,m.name]) not in methods_to_fix:
                         for i, insn in enumerate(m.insns):
                             if insn.opcode_name in OPCODE_MAP:
-                                if len([value for key, value in hooks.items() if key in self.str_to_java(insn.buf)])>0:
+                                if len([value for key, value in hooks.items() if key in insn.buf])>0:
                                     print insn
                                     print m.descriptor
                                     methods_to_fix[''.join([c.name,m.name,m.descriptor])] = m
@@ -327,7 +324,7 @@ class Injector(object):
                 skip_method = True
                 for ix in m.insns:
                     if ix.opcode_name.startswith('invoke'):
-                        if len([value for key, value in hooks.items() if key in self.str_to_java(ix.buf)])>0:
+                        if any(func in ix.buf for func,_ in hooks.items()):
                             skip_method = False
                             break
                 if skip_method:
@@ -343,20 +340,29 @@ class Injector(object):
                     print "j: %s , %s"%(i,m.registers-MORE_REGS+i)
                     new_regs.append("v%d"%(m.registers-MORE_REGS+i)) 
                        
-                while new_i < len(m.insns):     # m.insns = list of bytecode instructions as strings (e.g. "invoke-direct {p0}, ..")
+                while new_i < len(m.insns):     # m.insns = list of bytecode instructions as strings (e.g. "invoke-direct {p0}, ..")                    
                     insn = m.insns[new_i]       # iterate over all statements of the current method 
-                    if str(insn).startswith('#'):   # skip getter and setter comments in smali which would otherwise be considered a statement 
+                    if str(insn).startswith('#'):   #      getter and setter comments in smali which would otherwise be considered a statement 
                         new_i += 1
                         insn = m.insns[new_i]
                     if insn.buf.startswith('invoke-'):
-                        applicable_hooks = [value for key, value in hooks.items() if key in self.str_to_java(insn.buf)]
+                        applicable_hooks = [value for key, value in hooks.items() if key in insn.buf]
                         if len(applicable_hooks)>0:                            
                             # Get parameters
+                            assert isinstance(insn, InsnNode)
+                            print "Searching for parameters in %s"%(insn.buf)
                             params = self._parse_paras(insn.buf)
                             regs = insn.obj.registers
+
+                            for p in params:
+                                if p.basic:
+                                    instr = InsnNode("CASTME %s, %d"%(new_regs[1], len(regs))) #TODO Cast to Box typ
+                                    m.insert_insn(instr, new_i, 0)
+                                    new_i += 1
+                                    
+                            
                             if 'range' in insn.opcode_name:
                                 print "Invoke-Range not yet implemented!: %s, %s"%regs,insn.buf
-                            
                             #create an array
                             instr = InsnNode("const/4 %s, %d"%(new_regs[1], len(regs)))
                             m.insert_insn(instr, new_i, 0)
@@ -380,6 +386,13 @@ class Injector(object):
                                 instr = InsnNode("aget-object %s, %s, %s "%(new_regs[j+2],new_regs[0],r))
                                 m.insert_insn(instr, new_i, 0)
                                 new_i += 1
+                                
+                            for p in params:
+                                if p.basic:
+                                    instr = InsnNode("CASTMEBACK %s, %d"%(new_regs[1], len(regs))) #TODO Cast from Box typ
+                                    m.insert_insn(instr, new_i, 0)
+                                    new_i += 1
+
                                                                                   
                     i += 1  
                     new_i += 1  
@@ -387,6 +400,7 @@ class Injector(object):
         print "Instrumentation done!"
 
         return st
+
     
     def _parse_paras(self, insn):
         p1 = insn.find('(')

@@ -47,6 +47,9 @@ def load_hooks(filename):
         else:
             raise Exception('Invalid hook file format')
         
+def infer_type(dex):
+    pass
+        
 
 def instrument(filename,hooks):
     '''
