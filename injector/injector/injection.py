@@ -308,7 +308,15 @@ class Injector(object):
         #########################################################################
         
         for c in st.classes:                # iterate over all classes ...
+            assert isinstance(c, ClassNode)
+            print "CLASS %s"%c.name
+            for f in c.fields:
+                print "  %s"%f
+            for intf in c.implements:
+                print "  %s"%intf
             for m in c.methods:             # ... and all methods.
+                assert isinstance(m, MethodNode)
+                print "   METHOD %s %s"%(m.name,m.descriptor)
                 i = 0 
                 ADDED_LINES = 0
                 if ''.join([c.name,m.name,m.descriptor]) in methods_to_fix:
@@ -323,12 +331,14 @@ class Injector(object):
                 # Check if method contains call to instrument
                 skip_method = True
                 for ix in m.insns:
+                    print "      INS %s"%ix.buf
                     if ix.opcode_name.startswith('invoke'):
                         if any(func in ix.buf for func,_ in hooks.items()):
                             skip_method = False
+                            print "YEAH: %s"%ix.buf
                             break
                 if skip_method:
-                    break
+                    continue
                             
                 print "relevant: %s"%ix.opcode_name                      
 
@@ -347,19 +357,31 @@ class Injector(object):
                         insn = m.insns[new_i]
                     if insn.buf.startswith('invoke-'):
                         applicable_hooks = [value for key, value in hooks.items() if key in insn.buf]
+                        if len(applicable_hooks)>0:
+                            print "YES: %s"%insn.buf
+                        else:                                                        
+                            print "NO: %s"%insn.buf
+
                         if len(applicable_hooks)>0:                            
                             # Get parameters
                             assert isinstance(insn, InsnNode)
+                            
                             print "Searching for parameters in %s"%(insn.buf)
                             params = self._parse_paras(insn.buf)
                             regs = insn.obj.registers
 
-                            for p in params:
+                            for j,p in enumerate(params):
                                 if p.basic:
-                                    instr = InsnNode("CASTME %s, %d"%(new_regs[1], len(regs))) #TODO Cast to Box typ
-                                    m.insert_insn(instr, new_i, 0)
-                                    new_i += 1
-                                    
+                                    if str(p) == 'I': # cast int to Integer
+                                        instr = InsnNode("new-instance %s, Ljava/lang/Integer;"%(new_regs[1]))
+                                        m.insert_insn(instr, new_i, 0)
+                                        new_i += 1
+                                        instr = InsnNode("invoke-direct {%s, %s}, Ljava/lang/Integer;-><init>(I)V"%(new_regs[1], insn.obj.registers[j]))
+                                        m.insert_insn(instr, new_i, 0)
+                                        new_i += 1
+                                        instr = InsnNode("return-object %s"%(new_regs[1]))
+                                        m.insert_insn(instr, new_i, 0)
+                                        new_i += 1                                    
                             
                             if 'range' in insn.opcode_name:
                                 print "Invoke-Range not yet implemented!: %s, %s"%regs,insn.buf
