@@ -3,3 +3,4 @@ encoding//injector/injector/api.py=utf-8
 encoding//injector/injector/apk.py=utf-8
 encoding//injector/injector/injection.py=utf-8
 encoding//injector/injector/smali.py=utf-8
+encoding//src/instrumenter.py=utf8

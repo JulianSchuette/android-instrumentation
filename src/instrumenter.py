@@ -79,14 +79,14 @@ def instrument(filename,hooks):
     new_smalidir = os.path.join(outdir, "new_smali")
     
     level = 8
+    min_version = level
+    target_version = level
     if a.get_min_sdk_version():
         min_version = int(a.get_min_sdk_version())
         print "min_sdk_version=%d" % min_version
         level = min_version
     if a.get_target_sdk_version():
         target_version = int(a.get_target_sdk_version())
-    else:
-        target_version = min_version
     print "target_sdk_version=%d" % target_version
     
     
